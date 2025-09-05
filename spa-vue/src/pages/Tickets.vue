@@ -78,7 +78,7 @@
   
   <script>
   import { watch } from 'vue'
-  import { listTickets, updateTicket, classify, safe } from '../services/api'
+  import { listTickets, updateTicket, classify, getTicket, safe } from '../services/api'
   import CreateTicketModal from '../components/CreateTicketModal.vue'
 
   export default {
@@ -96,6 +96,7 @@
         meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 },
         loadingId: null,
         busyAll: false,
+        watching: new Set(),
         showModal: false
       }
     },
@@ -163,24 +164,60 @@
           window.dispatchEvent(new CustomEvent('refresh-stats'))
         }
       },
+      async waitForClassification(id, { timeoutMs = 20000, intervalMs = 1000 } = {}) {
+        const start = Date.now()
+        this.watching.add(id)
+        try {
+          while (Date.now() - start < timeoutMs) {
+            // fetch the latest ticket
+            const t = await safe(() => getTicket(id), null)
+            if (t) {
+              // merge into current list so UI updates immediately
+              const idx = this.all.findIndex(x => x.id === id)
+              if (idx !== -1) {
+                this.$set
+                  ? this.$set(this.all, idx, { ...this.all[idx], ...t })
+                  : (this.all.splice(idx, 1, { ...this.all[idx], ...t }))
+              }
+              // consider complete when status is done or confidence present
+              if (t.classification_status === 'done' || (t.confidence !== null && t.confidence !== undefined)) {
+                // notify dashboard as soon as one finishes
+                window.dispatchEvent(new CustomEvent('refresh-stats'))
+                return t
+              }
+            }
+            await new Promise(r => setTimeout(r, intervalMs))
+          }
+          return null
+        } finally {
+          this.watching.delete(id)
+        }
+      },
       async runClassify(id) {
         this.loadingId = id
         await safe(() => classify(id), Promise.resolve())
-        await this.fetchTickets()
+        // start polling this single row so user sees updates without manual refresh
+        await this.waitForClassification(id)
         this.loadingId = null
-        // notify dashboard to refresh
-        window.dispatchEvent(new CustomEvent('refresh-stats'))
       },
       async classifyVisible() {
         if (!this.tickets.length) return
         this.busyAll = true
         try {
+          // 1) enqueue in visible order
           for (const row of this.tickets) {
             await safe(() => classify(row.id), Promise.resolve())
           }
+          // 2) poll them in parallel so they update as soon as jobs finish
+          await Promise.race([
+            Promise.all(this.tickets.map(row => this.waitForClassification(row.id))),
+            // safety timeout to avoid hanging UI forever
+            new Promise(r => setTimeout(r, 25000))
+          ])
         } finally {
           this.busyAll = false
         }
+        // final sweep to sync pagination/meta
         await this.fetchTickets()
         window.dispatchEvent(new CustomEvent('refresh-stats'))
       },

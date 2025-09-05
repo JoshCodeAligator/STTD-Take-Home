@@ -26,7 +26,7 @@
       </div>
   
       <h3 class="dashboard__subtitle">Category Chart</h3>
-      <AnalyticsChart :data="chartData"/>
+      <AnalyticsChart :key="themeVersion" :data="chartData" />
     </section>
   </template>
   
@@ -41,6 +41,7 @@
       return {
         counts: { status: {}, category: {} },
         categories: ['Billing','Bug','Access','Feature Request','Outage','Other'],
+        themeVersion: 0,
         _timer: null
       }
     },
@@ -66,14 +67,19 @@
       stopAutoRefresh() {
         if (this._timer) clearInterval(this._timer)
         window.removeEventListener('refresh-stats', this.load)
-      }
+      },
+      onThemeChanged() {
+        this.themeVersion++
+      },
     },
     async mounted() {
       await this.load()
+      window.addEventListener('theme-changed', this.onThemeChanged)
       this.startAutoRefresh()
     },
     beforeUnmount() {
       this.stopAutoRefresh()
+      window.removeEventListener('theme-changed', this.onThemeChanged)
     }
   }
   </script>
