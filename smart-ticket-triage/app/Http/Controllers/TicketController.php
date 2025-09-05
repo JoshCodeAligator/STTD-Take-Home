@@ -36,7 +36,9 @@ class TicketController extends Controller
         ]);
 
         $ticket = Ticket::create($data + ['status' => 'new']);
-
+        $ticket->update(['classification_status' => 'queued']);
+        dispatch(new \App\Jobs\ClassifyTicket((string)$ticket->id));
+        
         return response()->json($ticket->fresh()->loadCount('notes'), 201);
     }
 

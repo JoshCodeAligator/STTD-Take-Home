@@ -1,6 +1,13 @@
 // Axios Client for Our Laravel API.
 import axios from 'axios'
-const api = axios.create({ baseURL: '/api', headers: { 'Content-Type': 'application/json' } })
+export const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  timeout: 15000
+})
 
 export const listTickets  = (params = {})             => api.get('/tickets', { params }).then(r => r.data)
 export const createTicket = (payload)                 => api.post('/tickets', payload).then(r => r.data)
@@ -11,5 +18,8 @@ export const getStats     = ()                        => api.get('/stats').then(
 
 // I developed this helper function so that our UI display still works despite having a faulty backend
 export function safe(call, fallback) {
-  return call().catch(() => fallback)
+  return call().catch((err) => {
+    console.error('[API error]', err?.response?.data || err?.message || err)
+    return fallback
+  })
 }

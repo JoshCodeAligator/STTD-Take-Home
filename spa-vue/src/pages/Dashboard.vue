@@ -8,8 +8,8 @@
           <div class="stat__value mono">{{ counts.status.open || 0 }}</div>
         </div>
         <div class="stat">
-          <div class="stat__label">In Progress</div>
-          <div class="stat__value mono">{{ counts.status.in_progress || 0 }}</div>
+          <div class="stat__label">New</div>
+          <div class="stat__value mono">{{ counts.status.new || 0 }}</div>
         </div>
         <div class="stat">
           <div class="stat__label">Closed</div>
@@ -40,7 +40,8 @@
     data() {
       return {
         counts: { status: {}, category: {} },
-        categories: ['Billing','Bug','Access','Feature Request','Outage','Other']
+        categories: ['Billing','Bug','Access','Feature Request','Outage','Other'],
+        _timer: null
       }
     },
     computed: {
@@ -50,10 +51,29 @@
     },
     methods: {
       async load() {
-        const fallback = { status: {}, category: {} }
-        this.counts = await safe(() => getStats(), fallback)
+        const fallback = { byStatus: {}, byCategory: {}, overrides: 0, avgClassificationSeconds: 0 }
+        const s = await safe(() => getStats(), fallback)
+        // Map API -> local
+        this.counts = {
+          status: s.byStatus || {},
+          category: s.byCategory || {}
+        }
+      },
+      startAutoRefresh() {
+        this._timer = setInterval(() => this.load(), 5000)
+        window.addEventListener('refresh-stats', this.load)
+      },
+      stopAutoRefresh() {
+        if (this._timer) clearInterval(this._timer)
+        window.removeEventListener('refresh-stats', this.load)
       }
     },
-    async mounted() { await this.load() }
+    async mounted() {
+      await this.load()
+      this.startAutoRefresh()
+    },
+    beforeUnmount() {
+      this.stopAutoRefresh()
+    }
   }
   </script>

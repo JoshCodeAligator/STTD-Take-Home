@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
 use App\Models\Ticket;
@@ -8,8 +7,7 @@ use App\Jobs\ClassifyTicket;
 Artisan::command('tickets:bulk-classify', function () {
     $count = 0;
 
-    Ticket::whereNot('classification_status','running')
-        ->whereIn('status',['new','open'])
+    Ticket::whereNotIn('classification_status', ['running', 'done'])
         ->orderByDesc('created_at')
         ->chunk(100, function ($chunk) use (&$count) {
             foreach ($chunk as $t) {
@@ -20,4 +18,4 @@ Artisan::command('tickets:bulk-classify', function () {
         });
 
     $this->info("Queued $count tickets for classification.");
-})->purpose('Queue classification for many tickets');
+})->purpose('Queue classification for all tickets not yet processed');

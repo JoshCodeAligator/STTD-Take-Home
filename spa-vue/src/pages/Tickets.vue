@@ -3,11 +3,11 @@
       <header class="tickets__header">
         <h2 class="tickets__title">Tickets</h2>
         <div class="tickets__actions">
-          <input class="input" v-model="q" placeholder="Search subject/body…" />
+          <input class="input" v-model="q" placeholder="Search subject/body…" @keyup.enter="goFirstPageAndFetch" />
           <select class="select" v-model="status">
             <option value="">All Statuses</option>
+            <option value="new">New</option>
             <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
             <option value="closed">Closed</option>
           </select>
           <select class="select" v-model="categoryFilter">
@@ -15,6 +15,7 @@
             <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
           </select>
           <button class="btn" @click="showModal = true">New Ticket</button>
+          <button class="btn" :disabled="busyAll || !tickets.length" @click="classifyVisible">{{ busyAll ? 'Classifying visible…' : 'Classify Visible' }}</button>
         </div>
       </header>
   
@@ -30,15 +31,15 @@
           <div class="ticket-list__cell w-10">Actions</div>
         </div>
   
-        <div v-for="t in paged" :key="t.id" class="ticket-list__row" :class="{'ticket-list__row--loading': loadingId===t.id}">
+        <div v-for="t in tickets" :key="t.id" class="ticket-list__row" :class="{'ticket-list__row--loading': loadingId===t.id}">
           <div class="ticket-list__cell w-20">
             <router-link :to="`/tickets/${t.id}`" class="link">{{ t.subject }}</router-link>
           </div>
           <div class="ticket-list__cell w-30 ellipsis" :title="t.body">{{ t.body }}</div>
           <div class="ticket-list__cell w-10">
             <select class="select select--sm" v-model="t.status" @change="save(t.id, { status: t.status })">
+              <option value="new">New</option>
               <option value="open">Open</option>
-              <option value="in_progress">In Progress</option>
               <option value="closed">Closed</option>
             </select>
           </div>
@@ -52,7 +53,7 @@
             <span class="muted" :title="t.explanation || '—'">{{ short(t.explanation) }}</span>
           </div>
           <div class="ticket-list__cell w-5">
-            <span v-if="t.note" class="badge badge--noted" title="Has note">●</span>
+            <span v-if="t.notes_count && t.notes_count > 0" class="badge badge--noted" title="Has note">●</span>
           </div>
           <div class="ticket-list__cell w-10">
             <button class="btn btn--sm" :disabled="loadingId===t.id" @click="runClassify(t.id)">
@@ -62,13 +63,13 @@
           </div>
         </div>
   
-        <div v-if="!paged.length" class="tickets__empty">No tickets match your filters.</div>
+        <div v-if="!tickets.length" class="tickets__empty">No tickets match your filters.</div>
       </div>
   
-      <footer class="tickets__footer">
-        <button class="btn btn--ghost" :disabled="page===1" @click="page--">Prev</button>
-        <span class="mono">{{ page }} / {{ totalPages }}</span>
-        <button class="btn btn--ghost" :disabled="page===totalPages" @click="page++">Next</button>
+      <footer class="tickets__footer" v-if="meta.total > 0">
+        <button class="btn btn--ghost" :disabled="meta.current_page<=1" @click="prevPage">Prev</button>
+        <span class="mono">{{ meta.current_page }} / {{ totalPages }} • Total {{ meta.total }}</span>
+        <button class="btn btn--ghost" :disabled="meta.current_page>=meta.last_page" @click="nextPage">Next</button>
       </footer>
   
       <CreateTicketModal v-if="showModal" @close="showModal=false" @create="created"/>
@@ -76,9 +77,10 @@
   </template>
   
   <script>
+  import { watch } from 'vue'
   import { listTickets, updateTicket, classify, safe } from '../services/api'
   import CreateTicketModal from '../components/CreateTicketModal.vue'
-  
+
   export default {
     name: 'Tickets',
     components: { CreateTicketModal },
@@ -90,35 +92,57 @@
         categoryFilter: '',
         categories: ['Billing','Bug','Access','Feature Request','Outage','Other'],
         page: 1,
-        pageSize: 10,
+        perPage: 10,
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 },
         loadingId: null,
+        busyAll: false,
         showModal: false
       }
     },
+    watch: {
+      q() { this.debouncedRefetch() },
+      status() { this.debouncedRefetch() },
+      categoryFilter() { this.debouncedRefetch() },
+      perPage() { this.debouncedRefetch() }
+    },
+    created() {
+      this._debounceTimer = null
+    },
+    beforeUnmount() {
+      if (this._debounceTimer) clearTimeout(this._debounceTimer)
+    },
     computed: {
-      filtered() {
-        const q = this.q.trim().toLowerCase()
-        return this.all.filter(t => {
-          const matchQ = !q || (t.subject||'').toLowerCase().includes(q) || (t.body||'').toLowerCase().includes(q)
-          const matchS = !this.status || t.status === this.status
-          const matchC = !this.categoryFilter || t.category === this.categoryFilter
-          return matchQ && matchS && matchC
-        })
+      tickets() {
+        return this.all; // already paginated by backend
       },
       totalPages() {
-        return Math.max(1, Math.ceil(this.filtered.length / this.pageSize))
-      },
-      paged() {
-        const start = (this.page - 1) * this.pageSize
-        return this.filtered.slice(start, start + this.pageSize)
+        return Math.max(1, this.meta.last_page || 1)
       }
     },
     methods: {
-      async load() {
-        const fallback = { data: [], meta: {} }
-        const res = await safe(() => listTickets({}), fallback)
-        this.all = Array.isArray(res) ? res : (res.data || [])
+      async fetchTickets() {
+        const params = {
+          q: this.q || '',
+          status: this.status || '',
+          category: this.categoryFilter || '',
+          page: this.page,
+          per_page: this.perPage
+        }
+        const fallback = { data: [], current_page:1, last_page:1, total:0, per_page:this.perPage }
+        const res = await safe(() => listTickets(params), fallback)
+        // Laravel paginator shape
+        this.all = res.data || []
+        this.meta.current_page = res.current_page || 1
+        this.meta.last_page    = res.last_page || 1
+        this.meta.total        = res.total || (Array.isArray(res.data) ? res.data.length : 0)
+        this.meta.per_page     = res.per_page || this.perPage
       },
+      goFirstPageAndFetch() { this.page = 1; this.fetchTickets() },
+      prevPage()  { if (this.meta.current_page > 1) { this.page = this.meta.current_page - 1; this.fetchTickets() } },
+      nextPage()  { if (this.meta.current_page < this.meta.last_page) { this.page = this.meta.current_page + 1; this.fetchTickets() } },
+      goFirstPage(){ if (this.meta.current_page !== 1) { this.page = 1; this.fetchTickets() } },
+      goLastPage() { if (this.meta.current_page !== this.meta.last_page) { this.page = this.meta.last_page; this.fetchTickets() } },
+
       short(s) {
         if (!s) return '—'
         return s.length > 60 ? s.slice(0, 57) + '…' : s
@@ -131,22 +155,47 @@
       async save(id, payload) {
         const t = this.all.find(x => x.id === id)
         if (!t) return
-        Object.assign(t, payload) // optimistic
-        await safe(() => updateTicket(id, payload), Promise.resolve())
+        const body = payload.category ? { override_category: payload.category } : payload
+        Object.assign(t, payload) // optimistic update
+        await safe(() => updateTicket(id, body), Promise.resolve())
+        if (payload.category) {
+          await this.fetchTickets()
+          window.dispatchEvent(new CustomEvent('refresh-stats'))
+        }
       },
       async runClassify(id) {
         this.loadingId = id
         await safe(() => classify(id), Promise.resolve())
-        await this.load()
+        await this.fetchTickets()
         this.loadingId = null
+        // notify dashboard to refresh
+        window.dispatchEvent(new CustomEvent('refresh-stats'))
+      },
+      async classifyVisible() {
+        if (!this.tickets.length) return
+        this.busyAll = true
+        try {
+          for (const row of this.tickets) {
+            await safe(() => classify(row.id), Promise.resolve())
+          }
+        } finally {
+          this.busyAll = false
+        }
+        await this.fetchTickets()
+        window.dispatchEvent(new CustomEvent('refresh-stats'))
+      },
+      debouncedRefetch() {
+        if (this._debounceTimer) clearTimeout(this._debounceTimer)
+        this._debounceTimer = setTimeout(() => { this.page = 1; this.fetchTickets() }, 300)
       },
       async created(newTicket) {
-        this.all.unshift(newTicket)
-        this.q = ''; this.status=''; this.categoryFilter=''
+        // reload from server to include notes_count & correct page
         this.page = 1
+        await this.fetchTickets()
+        this.q = ''; this.status=''; this.categoryFilter=''
         this.showModal = false
       }
     },
-    async mounted() { await this.load() }
+    async mounted() { await this.fetchTickets() }
   }
   </script>
