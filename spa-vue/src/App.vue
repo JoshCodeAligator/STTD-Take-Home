@@ -6,7 +6,14 @@
         <router-link to="/tickets" class="app__link">Tickets</router-link>
         <router-link to="/dashboard" class="app__link">Dashboard</router-link>
       </nav>
-      <button class="btn" @click="toggleTheme">{{ themeLabel }}</button>
+      <button
+        class="btn btn--ghost app__theme-btn"
+        :aria-pressed="theme === 'dark'"
+        :title="`Switch to ${themeLabel} theme`"
+        @click="toggleTheme"
+      >
+        {{ themeLabel }} Theme
+      </button>
     </header>
 
     <main class="app__main">

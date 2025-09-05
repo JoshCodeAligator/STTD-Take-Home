@@ -3,10 +3,10 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/spa/',                         
+  base: '/',                         
   build: {
-    outDir: '../smart-ticket-triage/public/spa',
-    emptyOutDir: true,
+    outDir: '../smart-ticket-triage/public',
+    emptyOutDir: false,
   },
   server: {
     port: 5173,
