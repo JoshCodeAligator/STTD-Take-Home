@@ -53,7 +53,8 @@ Enable support teams to streamline their workflow by submitting support tickets,
 - Improve UI/UX design with more polished styling, animations, and accessibility features.  
 - Add comprehensive test coverage for backend APIs and frontend components.  
 - Support multi-language localization and internationalization.  
-- Integrate email notifications for ticket updates and escalations.
+- Integrate email notifications for ticket updates and escalations.  
+- Implement CSV export of the ticket list, either as a client-side export of the current view or via a backend `?format=csv` endpoint.
 
 ---
 
@@ -132,6 +133,8 @@ Enable support teams to streamline their workflow by submitting support tickets,
 10. **Access the application**
 
    Open your browser to the frontend URL (see below).
+
+For production, the SPA must be built as a single bundle. Run `cd spa-vue && npm run build` to generate the production assets, which Laravel will serve from the `/public` directory.
 
 ---
 
