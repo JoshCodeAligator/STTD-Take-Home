@@ -1,8 +1,23 @@
 <?php
+declare(strict_types=1);
 
-use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use App\Models\Ticket;
+use App\Jobs\ClassifyTicket;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+Artisan::command('tickets:bulk-classify', function () {
+    $count = 0;
+
+    Ticket::whereNot('classification_status','running')
+        ->whereIn('status',['new','open'])
+        ->orderByDesc('created_at')
+        ->chunk(100, function ($chunk) use (&$count) {
+            foreach ($chunk as $t) {
+                $t->update(['classification_status' => 'queued']);
+                dispatch(new ClassifyTicket((string) $t->id));
+                $count++;
+            }
+        });
+
+    $this->info("Queued $count tickets for classification.");
+})->purpose('Queue classification for many tickets');

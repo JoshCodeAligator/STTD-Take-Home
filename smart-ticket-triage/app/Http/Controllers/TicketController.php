@@ -1,53 +1,68 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ClassifyTicket;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class TicketController extends Controller
 {
-    public function index(Request $r) {
-        return Ticket::withCount('notes')
-            ->search($r->q)
-            ->status($r->status)
-            ->category($r->category)
-            ->latest()
-            ->paginate(20);
+    public function index(Request $request): JsonResponse
+    {
+        $perPage = (int) max(5, min(100, (int) $request->input('per_page', 10)));
+        $q       = $request->input('q');
+        $status  = $request->input('status');
+        $cat     = $request->input('category');
+
+        $paginator = Ticket::withCount('notes')
+            ->search($q)
+            ->status($status)
+            ->category($cat)
+            ->latest('created_at')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return response()->json($paginator);
     }
 
-    public function store(Request $r) {
-        $data = $r->validate([
-            'subject'=>'required|string|max:200',
-            'description'=>'required|string',
-            'requester_email'=>'required|email',
-            'status'=>'in:new,open,closed',
-            'classify'=>'sometimes|boolean'
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'subject'         => ['required', 'string', 'max:200'],
+            'body'            => ['required', 'string'],
+            'requester_email' => ['nullable', 'email'],
         ]);
-        $t = Ticket::create([
-            'subject'=>$data['subject'],
-            'description'=>$data['description'],
-            'requester_email'=>$data['requester_email'],
-            'status'=>$data['status'] ?? 'new'
+
+        $ticket = Ticket::create($data + ['status' => 'new']);
+
+        return response()->json($ticket->fresh()->loadCount('notes'), 201);
+    }
+
+    public function show(Ticket $ticket): JsonResponse
+    {
+        return response()->json($ticket->load('notes'));
+    }
+
+    public function update(Request $request, Ticket $ticket): JsonResponse
+    {
+        $data = $request->validate([
+            'status'            => ['nullable', 'in:new,open,closed'],
+            'override_category' => ['nullable', 'string', 'max:100'],
+            'note'              => ['nullable', 'string'],
         ]);
-        if (!empty($data['classify'])) {
-            $t->update(['classification_status'=>'queued']);
-            dispatch(new ClassifyTicket($t->id));
+
+        $update = $data; unset($update['note']);
+        if (!empty($update)) $ticket->update($update);
+
+        if (!empty($data['note'])) {
+            $ticket->notes()->create([
+                'body'   => $data['note'],
+                'author' => 'agent',
+            ]);
         }
-        return response()->json($t->refresh(), 201);
-    }
 
-    public function show(Ticket $ticket) {
-        return $ticket->load('notes');
-    }
-
-    public function update(Request $r, Ticket $ticket) {
-        $data = $r->validate([
-            'status'=>'nullable|in:new,open,closed',
-            'override_category'=>'nullable|string|max:100',
-        ]);
-        $ticket->update($data);
-        return $ticket->refresh()->load('notes');
+        return response()->json($ticket->refresh()->load('notes'));
     }
 }

@@ -1,36 +1,23 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Services\Contracts\TicketClassifier;
-use App\Services\OpenAIClassifier;
-use App\Services\RulesClassifier;
+use App\Services\{OpenAIClassifier, RulesClassifier, RateLimitedClassifier};
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-
     public function register(): void
     {
         $this->app->bind(TicketClassifier::class, function () {
-            $useOpenAI = (bool) env('USE_OPENAI', false);
-            $hasKey    = (string) config('services.openai.key') !== '';
-
-            if ($useOpenAI && $hasKey) {
-                return new OpenAIClassifier();
-            }
-            return new RulesClassifier();
+            $base = env('OPENAI_CLASSIFY_ENABLED', false)
+                ? new OpenAIClassifier()
+                : new RulesClassifier();
+            return new RateLimitedClassifier($base); 
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+    public function boot(): void {}
 }

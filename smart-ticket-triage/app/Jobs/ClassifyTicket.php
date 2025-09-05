@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Jobs;
 
@@ -7,25 +8,29 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\Contracts\TicketClassifier;
 
-class ClassifyTicket implements ShouldQueue
+/**
+ * Queued classifier job. Preserves manual override; still updates explanation & confidence.  [oai_citation:4‡AI-Skills-Assessment-Test.pdf](file-service://file-P76HTC3Tq4SCr2zRzaDabp)
+ */
+final class ClassifyTicket implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $ticketId) {}
+    public function __construct(public string $ticketId) {} // ULID
 
     public function handle(TicketClassifier $clf): void
     {
-        $t = Ticket::find($this->ticketId);
-        if (!$t) return;
+        $t = Ticket::findOrFail($this->ticketId);
 
         $t->update(['classification_status' => 'running']);
 
         try {
-            $res = $clf->predict(trim(($t->subject ?? '').' '.($t->description ?? '')));
+            $text = trim(($t->subject ?? '').' '.($t->body ?? ''));
+            $res  = $clf->predict($text);
+
+            // Update ONLY AI fields; never clobber override_category
             $t->ai_category           = $res['category']    ?? null;
-            $t->ai_confidence         = $res['confidence']  ?? null;
-           
-            // $t->ai_explanation     = $res['explanation'] ?? null;
+            $t->ai_confidence         = isset($res['confidence']) ? (float) $res['confidence'] : null;
+            $t->ai_explanation        = $res['explanation'] ?? null;
             $t->classification_status = 'done';
             $t->classified_at         = now();
             $t->save();

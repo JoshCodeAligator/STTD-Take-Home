@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -8,13 +9,11 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('notes', function (Blueprint $t) {
             $t->id();
-            $t->foreignId('ticket_id')->constrained()->cascadeOnDelete();
+            $t->foreignUlid('ticket_id')->constrained('tickets')->cascadeOnDelete();
             $t->string('author')->default('agent');
             $t->text('body');
             $t->timestamps();
         });
     }
-    public function down(): void {
-        Schema::dropIfExists('notes');
-    }
+    public function down(): void { Schema::dropIfExists('notes'); }
 };
