@@ -38,6 +38,10 @@ final class OpenAIClassifier implements TicketClassifier
         $conf = max(0.0, min(1.0, (float) ($data['confidence'] ?? 0.5)));
         $exp  = isset($data['explanation']) && is_string($data['explanation']) ? $data['explanation'] : null;
 
-        return ['category' => $cat, 'confidence' => $conf, 'explanation' => $exp];
+        return [
+            'category'    => $cat,
+            'confidence'  => $conf,
+            'explanation' => $exp ?? 'Model returned no explanation.'
+        ];
     }
 }

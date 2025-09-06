@@ -30,7 +30,9 @@ Enable support teams to streamline their workflow by submitting support tickets,
 - Rate limiting on ticket submissions to prevent abuse  
 - Real-time dashboard displaying ticket statistics, AI classification progress, and category breakdowns  
 - Toggle between dark and light themes for user preference  
-- Seeded demo data for quick setup and testing
+- Seeded demo data for quick setup and testing  
+- CSV export of the ticket list, either as a client-side export of the current view or via a backend `?format=csv` endpoint  
+- Meets the handout’s *Single Build* requirement by bundling the Vue SPA into Laravel’s `/public` directory
 
 ---
 
@@ -53,8 +55,7 @@ Enable support teams to streamline their workflow by submitting support tickets,
 - Improve UI/UX design with more polished styling, animations, and accessibility features.  
 - Add comprehensive test coverage for backend APIs and frontend components.  
 - Support multi-language localization and internationalization.  
-- Integrate email notifications for ticket updates and escalations.  
-- Implement CSV export of the ticket list, either as a client-side export of the current view or via a backend `?format=csv` endpoint.
+- Integrate email notifications for ticket updates and escalations.
 
 ---
 
@@ -123,25 +124,38 @@ Enable support teams to streamline their workflow by submitting support tickets,
    php artisan queue:work
    ```
 
-9. **Start the Vue frontend development server**
+9. **Start the Vue frontend development server (Development Mode)**
 
    ```bash
    cd spa-vue
    npm run dev
    ```
 
+   This will serve the SPA at `http://localhost:5173` for rapid development with hot reloads.
+
+   **OR**
+
+   **Build the SPA bundle for production (Submission Mode)**
+
+   ```bash
+   npm run build
+   ```
+
+   After building, run `php artisan serve` and `php artisan queue:work` to serve both the SPA and API from Laravel.
+
 10. **Access the application**
 
-   Open your browser to the frontend URL (see below).
+    - In **Development Mode**, open your browser to [http://localhost:5173](http://localhost:5173) to submit and manage support tickets.
 
-For production, the SPA must be built as a single bundle. Run `cd spa-vue && npm run build` to generate the production assets, which Laravel will serve from the `/public` directory.
+    - In **Submission Mode (Single Build)**, access the SPA served by Laravel at [http://localhost:8000](http://localhost:8000).
 
 ---
 
 ## Accessing the Application
 
 - **Frontend (Vue SPA):**  
-  Visit [http://localhost:5173](http://localhost:5173) to submit and manage support tickets.
+  - In Development Mode, visit [http://localhost:5173](http://localhost:5173) to submit and manage support tickets.  
+  - In Submission Mode (Single Build), the SPA is served from Laravel’s `/public` directory at [http://localhost:8000](http://localhost:8000).
 
 - **Backend API (Laravel):**  
   API endpoints are served at [http://localhost:8000](http://localhost:8000).

@@ -72,12 +72,11 @@
         <button class="btn btn--ghost" :disabled="meta.current_page>=meta.last_page" @click="nextPage">Next</button>
       </footer>
   
-      <CreateTicketModal v-if="showModal" @close="showModal=false" @create="created"/>
+      <CreateTicketModal v-if="showModal" @close="showModal=false" @create="onCreated"/>
     </section>
   </template>
   
   <script>
-  import { watch } from 'vue'
   import { listTickets, updateTicket, classify, getTicket, safe } from '../services/api'
   import CreateTicketModal from '../components/CreateTicketModal.vue'
 
@@ -199,6 +198,8 @@
         // start polling this single row so user sees updates without manual refresh
         await this.waitForClassification(id)
         this.loadingId = null
+        await this.fetchTickets();
+        window.dispatchEvent(new CustomEvent('refresh-stats'))
       },
       async classifyVisible() {
         if (!this.tickets.length) return
@@ -225,7 +226,7 @@
         if (this._debounceTimer) clearTimeout(this._debounceTimer)
         this._debounceTimer = setTimeout(() => { this.page = 1; this.fetchTickets() }, 300)
       },
-      async created(newTicket) {
+      async onCreated(newTicket) {
         // reload from server to include notes_count & correct page
         this.page = 1
         await this.fetchTickets()

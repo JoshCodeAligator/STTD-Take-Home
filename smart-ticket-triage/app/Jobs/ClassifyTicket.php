@@ -20,23 +20,27 @@ final class ClassifyTicket implements ShouldQueue
     public function handle(TicketClassifier $clf): void
     {
         $t = Ticket::findOrFail($this->ticketId);
-
         $t->update(['classification_status' => 'running']);
-
         try {
-            $text = trim(($t->subject ?? '').' '.($t->body ?? ''));
+            $text = trim(($t->subject ?? '') . ' ' . ($t->body ?? ''));
             $res  = $clf->predict($text);
 
             // Update ONLY AI fields; never clobber override_category
-            $t->ai_category           = $res['category']    ?? null;
+            $t->ai_category           = $res['category'] ?? null;
             $t->ai_confidence         = isset($res['confidence']) ? (float) $res['confidence'] : null;
-            $t->ai_explanation        = $res['explanation'] ?? null;
+            $t->ai_explanation        = $res['explanation'] ?? 'Classification completed.';
             $t->classification_status = 'done';
             $t->classified_at         = now();
             $t->save();
         } catch (\Throwable $e) {
-            $t->update(['classification_status' => 'failed']);
-            throw $e;
+            $t->update([
+                'classification_status' => 'failed',
+                'ai_explanation'        => 'Classification failed: ' . $e->getMessage(),
+            ]);
+            \Log::warning('ClassifyTicket failed', [
+                'ticket_id' => $this->ticketId,
+                'error'     => $e->getMessage(),
+            ]);
         }
     }
 }
