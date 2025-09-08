@@ -5,7 +5,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Services\Contracts\TicketClassifier;
-use App\Services\{OpenAIClassifier, RulesClassifier, RateLimitedClassifier};
+use App\Services\{OpenAIClassifier, RandomClassifier, RateLimitedClassifier};
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TicketClassifier::class, function () {
             $base = env('OPENAI_CLASSIFY_ENABLED', false)
                 ? new OpenAIClassifier()
-                : new RulesClassifier();
+                : new RandomClassifier();
             return new RateLimitedClassifier($base); 
         });
     }

@@ -1,0 +1,1 @@
+protected $commands = [ \App\Console\Commands\BulkClassifyTickets::class ];

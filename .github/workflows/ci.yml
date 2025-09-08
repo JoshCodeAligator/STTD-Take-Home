@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  php-tests:
+    name: PHP (Laravel) tests
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      APP_DEBUG: false
+      CACHE_DRIVER: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      BROADCAST_DRIVER: log
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /tmp/testing.sqlite
+      OPENAI_CLASSIFY_ENABLED: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          extensions: mbstring, pdo_sqlite, sqlite3, curl, dom, json
+
+      - name: Cache Composer deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('**/smart-ticket-triage/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install PHP deps
+        working-directory: smart-ticket-triage
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare app key and env
+        working-directory: smart-ticket-triage
+        run: |
+          cp -n .env.example .env || true
+          php artisan key:generate --force
+          touch /tmp/testing.sqlite
+
+      - name: Migrate & seed
+        working-directory: smart-ticket-triage
+        run: php artisan migrate --seed --no-interaction
+
+      - name: Run tests
+        working-directory: smart-ticket-triage
+        run: php artisan test --no-interaction
+
+  frontend-build:
+    name: Frontend build (Vite/SPA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Vue app (spa-vue emits into Laravel public/build)
+        working-directory: spa-vue
+        run: |
+          npm ci
+          npm run build
