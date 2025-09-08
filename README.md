@@ -92,8 +92,14 @@ Enable support teams to streamline their workflow by submitting support tickets,
 
    ```
    OPENAI_API_KEY=your_openai_api_key_here
+   OPENAI_CLASSIFY_ENABLED=false    # disable external calls; use RandomClassifier fallback
    DB_CONNECTION=sqlite
    DB_DATABASE=/absolute/path/to/database/database.sqlite
+
+   # Queue behavior:
+   #  - For quick local testing or CI, use sync (no worker needed)
+   #  - For async processing, use database and run a worker
+   QUEUE_CONNECTION=sync            # or: database
    ```
 
 5. **Create the SQLite database file**
@@ -141,6 +147,8 @@ Enable support teams to streamline their workflow by submitting support tickets,
    npm run build
    ```
 
+   This writes compiled assets to `smart-ticket-triage/public/build` and sets asset URLs to `/build/`.
+
    After building, run `php artisan serve` and `php artisan queue:work` to serve both the SPA and API from Laravel.
 
 10. **Access the application**
@@ -162,6 +170,42 @@ Enable support teams to streamline their workflow by submitting support tickets,
 
 - **Dashboard:**  
   Accessible within the frontend SPA at `/dashboard` for real-time ticket analytics and AI progress.
+
+---
+
+## Running Tests
+
+Run the backend test suite locally:
+
+```bash
+php artisan test
+```
+
+Tests also run automatically in **GitHub Actions** (SQLite + seeded demo data). The workflow lives at `.github/workflows/ci.yml`.
+
+---
+
+## Queue Modes
+
+- **sync** (recommended for quick local checks & CI): jobs execute immediately — no worker needed.
+- **database** (recommended when demonstrating async): create the jobs table and run a worker.
+
+```bash
+php artisan queue:table && php artisan migrate
+php artisan queue:work
+```
+
+---
+
+## OpenAI Disabled Mode
+
+When `OPENAI_CLASSIFY_ENABLED=false`, the app uses a **RandomClassifier** fallback that returns a random `category`, dummy `explanation`, and `confidence` in `[0.30–0.90]`. This ensures the app works end‑to‑end without external API calls.
+
+---
+
+## Submission Mode (Single Build) Clarification
+
+After `npm run build` in `spa-vue`, the SPA is compiled into `smart-ticket-triage/public/build` and served by Laravel at `http://localhost:8000`. This fulfills the assignment’s **Single Build** requirement (no separate dev server).
 
 ---
 
