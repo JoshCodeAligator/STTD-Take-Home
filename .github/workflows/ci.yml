@@ -54,7 +54,7 @@ jobs:
 
       - name: Run tests
         working-directory: smart-ticket-triage
-        run: php artisan test --no-interaction
+        run: php artisan test
 
   frontend-build:
     name: Frontend build (Vite/SPA)
