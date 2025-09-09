@@ -1,6 +1,6 @@
 # Smart Ticket Triage & Dashboard
 
-A production-ready Laravel 11 + Vue 3 single-page application (SPA) designed to simulate a help-desk system. This project empowers support teams to efficiently submit, classify, manage, and analyze support tickets using AI-powered categorization, real-time analytics, and intuitive overrides.
+A Laravel 11 + Vue 3 single-page application (SPA) that simulates a help-desk system. It allows support teams to submit, classify, manage, and analyze tickets using AI-powered categorization, real-time analytics, and intuitive overrides.
 
 ---
 
@@ -35,6 +35,7 @@ Enable support teams to streamline their workflow by submitting support tickets,
 
 ## Screenshots
 
+<<<<<<< HEAD
 Store screenshots in `docs/screenshots/` and use clear, reviewer-friendly filenames:
 
 - `docs/screenshots/tickets.png` — Tickets list with AI classification + overrides visible
@@ -43,6 +44,8 @@ Store screenshots in `docs/screenshots/` and use clear, reviewer-friendly filena
 
 Add them to the README like this:
 
+=======
+>>>>>>> 2c5c3f9 (Post Submission: Added 3 Test Suites and UI Screenshots to README.md)
 ![Tickets view](docs/screenshots/tickets.png)
 *Tickets list with AI classification and overrides.*
 
@@ -59,15 +62,15 @@ Add them to the README like this:
 - SQLite is used for simplicity and ease of setup; suitable for demonstration and small-scale usage but may not scale for large production environments.  
 - AI classification relies on OpenAI API calls, which introduces latency and potential cost considerations.  
 - Real-time updates are implemented using polling or Laravel broadcasting depending on environment constraints.  
-- Styling prioritizes clarity and functionality over visual polish, using BEM conventions for maintainability.  
+- Styling uses BEM conventions and focuses on clarity and maintainability rather than polish.  
 - The frontend leverages Vue 3 Options API for readability and ease of onboarding.  
 - Designed primarily for local development and demonstration rather than full production deployment.
 
 ---
 
-## What I’d Do With More Time
+## Possible Next Steps
 
-- Implement WebSocket-based real-time updates for ticket status and dashboard metrics to improve responsiveness.  
+- Add WebSocket-based updates for ticket status and dashboard metrics to improve responsiveness.  
 - Add user authentication and role-based access control to secure ticket management and dashboard views.  
 - Enhance AI classification with custom training or feedback loops to improve accuracy over time.  
 - Improve UI/UX design with more polished styling, animations, and accessibility features.  
