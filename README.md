@@ -35,17 +35,6 @@ Enable support teams to streamline their workflow by submitting support tickets,
 
 ## Screenshots
 
-<<<<<<< HEAD
-Store screenshots in `docs/screenshots/` and use clear, reviewer-friendly filenames:
-
-- `docs/screenshots/tickets.png` — Tickets list with AI classification + overrides visible
-- `docs/screenshots/dashboard.png` — Analytics dashboard (counts, category breakdown, charts)
-- `docs/screenshots/dark-theme.png` — Dark theme applied on any main screen
-
-Add them to the README like this:
-
-=======
->>>>>>> 2c5c3f9 (Post Submission: Added 3 Test Suites and UI Screenshots to README.md)
 ![Tickets view](docs/screenshots/tickets.png)
 *Tickets list with AI classification and overrides.*
 
@@ -54,8 +43,6 @@ Add them to the README like this:
 
 ![Dark theme](docs/screenshots/dark-theme.png)
 *Dark mode for better readability and user preference.*
-
----
 
 ## Assumptions & Trade-offs
 
