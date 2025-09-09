@@ -31,8 +31,26 @@ Enable support teams to streamline their workflow by submitting support tickets,
 - Real-time dashboard displaying ticket statistics, AI classification progress, and category breakdowns  
 - Toggle between dark and light themes for user preference  
 - Seeded demo data for quick setup and testing  
-- CSV export of the ticket list, either as a client-side export of the current view or via a backend `?format=csv` endpoint  
-- Meets the handout’s *Single Build* requirement by bundling the Vue SPA into Laravel’s `/public` directory
+- CSV export of the ticket list via client-side export or backend endpoint (`?format=csv`)  
+
+## Screenshots
+
+Store screenshots in `docs/screenshots/` and use clear, reviewer-friendly filenames:
+
+- `docs/screenshots/tickets.png` — Tickets list with AI classification + overrides visible
+- `docs/screenshots/dashboard.png` — Analytics dashboard (counts, category breakdown, charts)
+- `docs/screenshots/dark-theme.png` — Dark theme applied on any main screen
+
+Add them to the README like this:
+
+![Tickets view](docs/screenshots/tickets.png)
+*Tickets list with AI classification and overrides.*
+
+![Dashboard](docs/screenshots/dashboard.png)
+*Analytics dashboard showing category breakdown and stats.*
+
+![Dark theme](docs/screenshots/dark-theme.png)
+*Dark mode for better readability and user preference.*
 
 ---
 
@@ -188,7 +206,7 @@ Tests also run automatically in **GitHub Actions** (SQLite + seeded demo data). 
 ## Queue Modes
 
 - **sync** (recommended for quick local checks & CI): jobs execute immediately — no worker needed.
-- **database** (recommended when demonstrating async): create the jobs table and run a worker.
+- **database** (recommended when demonstrating background job processing): create the jobs table and run a worker.
 
 ```bash
 php artisan queue:table && php artisan migrate
@@ -199,7 +217,7 @@ php artisan queue:work
 
 ## OpenAI Disabled Mode
 
-When `OPENAI_CLASSIFY_ENABLED=false`, the app uses a **RandomClassifier** fallback that returns a random `category`, dummy `explanation`, and `confidence` in `[0.30–0.90]`. This ensures the app works end‑to‑end without external API calls.
+When `OPENAI_CLASSIFY_ENABLED=false`, the app uses a **RandomClassifier** fallback that returns a random `category`, fallback `explanation`, and `confidence` in `[0.30–0.90]`. This ensures the app works end‑to‑end without external API calls.
 
 ---
 
